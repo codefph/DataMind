@@ -67,14 +67,14 @@ DataMind 能把一句自然语言变成：
 
 ## 技术栈
 
-| 层 | 技术 |
-| --- | --- |
-| 后端 | Python 3.11+ · FastAPI · SQLAlchemy 2（async） · Alembic · Pydantic v2 |
-| 模型 | LiteLLM · instructor · 默认 DeepSeek（可替换） |
-| 检索 | Qdrant（稠密 + 稀疏混合检索） · sqlglot |
-| 前端 | React 18 · TypeScript · Vite · ECharts · Zustand · jsPDF |
-| 基础设施 | PostgreSQL 16 · Qdrant · Redis |
-| 可观测 | structlog · `/api/metrics` · 请求级 request_id |
+| 层       | 技术                                                                       |
+| -------- | -------------------------------------------------------------------------- |
+| 后端     | Python 3.11+ · FastAPI · SQLAlchemy 2（async） · Alembic · Pydantic v2 |
+| 模型     | LiteLLM · instructor · 默认 DeepSeek（可替换）                           |
+| 检索     | Qdrant（稠密 + 稀疏混合检索） · sqlglot                                   |
+| 前端     | React 18 · TypeScript · Vite · ECharts · Zustand · jsPDF              |
+| 基础设施 | PostgreSQL 16 · Qdrant · Redis                                           |
+| 可观测   | structlog ·`/api/metrics` · 请求级 request_id                          |
 
 ## 目录结构
 
@@ -167,44 +167,44 @@ pnpm dev
 
 后端配置从 `backend/.env` 读取（该文件已加入 .gitignore）。主要变量：
 
-| 变量 | 说明 |
-| --- | --- |
-| `ENVIRONMENT` | `dev` 或 `prod`，影响日志格式 |
-| `DEBUG` | `true` 时输出 SQL 执行日志 |
-| `DATABASE_URL` | 元数据库连接串（PostgreSQL + asyncpg） |
-| `QDRANT_URL` / `QDRANT_COLLECTION` | Qdrant 地址与集合名 |
-| `REDIS_URL` | Redis 地址 |
-| `FERNET_KEY` | 数据源密码加密密钥；留空使用本地开发默认密钥 |
-| `MODEL_DEFAULT` | 主模型，LiteLLM 命名，如 `deepseek/deepseek-chat` |
-| `MODEL_FALLBACKS` | 备用模型链，逗号分隔 |
-| `EMBEDDING_DEFAULT` | 向量模型名（当前检索默认走本地 Hash 嵌入） |
-| `RATE_LIMIT_PER_MINUTE` | `/analyze`、`/query` 的限流（默认 30） |
-| `DEEPSEEK_API_KEY` 等 | 各厂商 API Key，按 LiteLLM 约定注入 |
+| 变量                                   | 说明                                               |
+| -------------------------------------- | -------------------------------------------------- |
+| `ENVIRONMENT`                        | `dev` 或 `prod`，影响日志格式                  |
+| `DEBUG`                              | `true` 时输出 SQL 执行日志                       |
+| `DATABASE_URL`                       | 元数据库连接串（PostgreSQL + asyncpg）             |
+| `QDRANT_URL` / `QDRANT_COLLECTION` | Qdrant 地址与集合名                                |
+| `REDIS_URL`                          | Redis 地址                                         |
+| `FERNET_KEY`                         | 数据源密码加密密钥；留空使用本地开发默认密钥       |
+| `MODEL_DEFAULT`                      | 主模型，LiteLLM 命名，如`deepseek/deepseek-chat` |
+| `MODEL_FALLBACKS`                    | 备用模型链，逗号分隔                               |
+| `EMBEDDING_DEFAULT`                  | 向量模型名（当前检索默认走本地 Hash 嵌入）         |
+| `RATE_LIMIT_PER_MINUTE`              | `/analyze`、`/query` 的限流（默认 30）         |
+| `DEEPSEEK_API_KEY` 等                | 各厂商 API Key，按 LiteLLM 约定注入                |
 
 模型网关基于 LiteLLM，任何 LiteLLM 支持的厂商都可以通过 `MODEL_DEFAULT` 与对应 Key 接入。
 
 ## API 概览
 
-| 方法 | 路径 | 说明 |
-| --- | --- | --- |
-| GET | `/api/healthz` | 存活检查 |
-| GET | `/api/readyz` | 就绪检查（含 Qdrant） |
-| GET | `/api/metrics` | 计数器与运行时长 |
-| GET / POST | `/api/datasources` | 数据源列表 / 创建 |
-| DELETE | `/api/datasources/{id}` | 删除数据源 |
-| GET | `/api/datasources/{id}/test` | 连接测试 |
-| GET | `/api/datasources/{id}/schema` | 拉取 Schema 元数据 |
-| POST | `/api/datasources/{id}/sync` | 同步知识库（RGA） |
-| GET | `/api/datasources/{id}/search?q=` | 知识库检索 |
-| POST | `/api/datasources/{id}/analyze` | 非流式分析 |
-| POST | `/api/datasources/{id}/analyze/stream` | 流式分析（SSE） |
-| GET / POST | `/api/conversations` | 会话列表 / 创建 |
-| GET | `/api/conversations/{id}/messages` | 历史消息 |
-| GET | `/api/conversations/{id}/charts` | 会话图表 |
-| POST | `/api/conversations/{id}/query` | 会话内提问（SSE） |
-| GET / POST | `/api/dashboards` | 看板列表 / 保存 |
-| GET | `/api/dashboards/{id}` | 看板详情 |
-| PATCH | `/api/charts/{id}` | 更新图表类型与配置 |
+| 方法       | 路径                                     | 说明                  |
+| ---------- | ---------------------------------------- | --------------------- |
+| GET        | `/api/healthz`                         | 存活检查              |
+| GET        | `/api/readyz`                          | 就绪检查（含 Qdrant） |
+| GET        | `/api/metrics`                         | 计数器与运行时长      |
+| GET / POST | `/api/datasources`                     | 数据源列表 / 创建     |
+| DELETE     | `/api/datasources/{id}`                | 删除数据源            |
+| GET        | `/api/datasources/{id}/test`           | 连接测试              |
+| GET        | `/api/datasources/{id}/schema`         | 拉取 Schema 元数据    |
+| POST       | `/api/datasources/{id}/sync`           | 同步知识库（RGA）     |
+| GET        | `/api/datasources/{id}/search?q=`      | 知识库检索            |
+| POST       | `/api/datasources/{id}/analyze`        | 非流式分析            |
+| POST       | `/api/datasources/{id}/analyze/stream` | 流式分析（SSE）       |
+| GET / POST | `/api/conversations`                   | 会话列表 / 创建       |
+| GET        | `/api/conversations/{id}/messages`     | 历史消息              |
+| GET        | `/api/conversations/{id}/charts`       | 会话图表              |
+| POST       | `/api/conversations/{id}/query`        | 会话内提问（SSE）     |
+| GET / POST | `/api/dashboards`                      | 看板列表 / 保存       |
+| GET        | `/api/dashboards/{id}`                 | 看板详情              |
+| PATCH      | `/api/charts/{id}`                     | 更新图表类型与配置    |
 
 SSE 事件顺序：`start → retrieved → sql → executing → chart → insight → narrative → done`，失败时发送 `error`。
 
@@ -240,12 +240,6 @@ docker compose -f deploy/docker-compose.prod.yml up -d --build
 欢迎提交 Pull Request。较大改动请先开 Issue 讨论。
 
 评测集（`backend/app/eval`）是生成质量的安全网——修改 Prompt、模型或 SQL 生成逻辑时，请同步扩展它。详细约定见 [CONTRIBUTING.md](./CONTRIBUTING.md)。
-
-## 文档
-
-- [产品需求设计 PRD.md](./PRD.md)
-- [技术方案设计](./技术方案设计.md)
-- [开发计划](./开发计划.md)
 
 ## 实现说明与注意事项
 
