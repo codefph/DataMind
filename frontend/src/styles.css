@@ -106,20 +106,48 @@ textarea:focus {
 .brand {
   display: flex;
   align-items: center;
-  gap: 10px;
-  font-size: 17px;
-  font-weight: 700;
+  gap: 12px;
   padding: 4px 6px 8px;
-  letter-spacing: -0.02em;
 }
 
 .brand-mark {
-  width: 12px;
-  height: 12px;
-  background: linear-gradient(135deg, #2563eb, #60a5fa);
-  transform: rotate(45deg);
-  border-radius: 4px;
-  box-shadow: 0 8px 18px rgba(37, 99, 235, 0.25);
+  width: 42px;
+  height: 42px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 14px;
+  background: linear-gradient(135deg, rgba(37, 99, 235, 0.14), rgba(96, 165, 250, 0.26));
+  border: 1px solid rgba(37, 99, 235, 0.18);
+  box-shadow: 0 12px 22px rgba(37, 99, 235, 0.12);
+}
+
+.brand-mark svg {
+  width: 28px;
+  height: 28px;
+  display: block;
+}
+
+.brand-wordmark {
+  display: flex;
+  flex-direction: column;
+  line-height: 1;
+}
+
+.brand-name {
+  font-size: 17px;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  color: var(--text);
+}
+
+.brand-tag {
+  margin-top: 4px;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--accent);
 }
 
 .primary {
@@ -464,7 +492,7 @@ textarea:focus {
   color: var(--muted);
   font-size: 13px;
   line-height: 1.6;
-  margin: 16px 0 0;
+  margin: 16px 0 !important;
   font-variant-numeric: tabular-nums;
 }
 
@@ -571,7 +599,7 @@ textarea:focus {
 
 .charts-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(500px, 1fr));
   gap: 24px;
 }
 
@@ -581,6 +609,8 @@ textarea:focus {
   border-radius: var(--radius-card);
   padding: 16px;
   box-shadow: var(--shadow-card);
+  resize: both;
+  overflow: auto;
 }
 
 .chart-card-head {

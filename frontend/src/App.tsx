@@ -295,9 +295,24 @@ export default function App() {
   return (
     <div className="shell">
       <aside className={sidebarOpen ? "sidebar open" : "sidebar"}>
-        <div className="brand">
-          <span className="brand-mark" />
-          <span>DataMind</span>
+        <div className="brand" aria-label="DataMind logo">
+          <div className="brand-mark" aria-hidden="true">
+            <svg viewBox="0 0 64 64" role="img">
+              <defs>
+                <linearGradient id="brandGradient" x1="0%" x2="100%" y1="0%" y2="100%">
+                  <stop offset="0%" stopColor="#60a5fa" />
+                  <stop offset="100%" stopColor="#2563eb" />
+                </linearGradient>
+              </defs>
+              <path d="M16 26l10-10 12 12 12-20 14 28H16z" fill="rgba(255,255,255,0.18)" />
+              <path d="M14 38c6-16 11-24 18-24 9 0 11 8 17 19 3 7 7 13 15 17H14c0-4 0-8 0-12z" fill="url(#brandGradient)" opacity="0.22" />
+              <path d="M12 16h18l-8 12H12V16zm19 0h21v11H31V16zm-8 14h27v12H23V30zm-11 14h38v8H12v-8z" fill="url(#brandGradient)" />
+            </svg>
+          </div>
+          <div className="brand-wordmark">
+            <span className="brand-name">DataMind</span>
+            <span className="brand-tag">AI BI</span>
+          </div>
         </div>
 
         <button className="primary" onClick={startNewConversation}>
