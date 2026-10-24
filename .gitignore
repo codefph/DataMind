@@ -1,0 +1,29 @@
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+*.egg-info/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# 环境变量与本地配置
+.env
+.env.local
+
+# Node
+node_modules/
+frontend/dist/
+*.local
+
+# IDE / 系统
+.idea/
+.vscode/
+.DS_Store
+
+# 运行时产物
+*.log
+backend/app/static/
+.taste-skill/
+
