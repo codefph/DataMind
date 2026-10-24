@@ -611,6 +611,9 @@ textarea:focus {
   box-shadow: var(--shadow-card);
   resize: both;
   overflow: auto;
+  height: 350px;
+  display: flex;
+  flex-direction: column;
 }
 
 .chart-card-head {

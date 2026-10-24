@@ -1,6 +1,7 @@
 import { useEffect, useRef } from "react";
 import * as echarts from "echarts";
 import { chartRegistry } from "./registry";
+import { useResize } from "../hooks/useResize";
 
 export default function EChart({
   chartId,
@@ -13,7 +14,9 @@ export default function EChart({
 }) {
   const ref = useRef<HTMLDivElement>(null);
   const chartRef = useRef<echarts.ECharts | null>(null);
-
+  useResize(ref, (rect) => {
+    chartRef.current?.resize();
+  });
   useEffect(() => {
     if (!ref.current) return;
     const chart = echarts.init(ref.current, {
@@ -27,6 +30,7 @@ export default function EChart({
     chartRegistry.set(chartId, chart);
     const onResize = () => chart.resize();
     window.addEventListener("resize", onResize);
+
     return () => {
       window.removeEventListener("resize", onResize);
       chartRegistry.delete(chartId);
@@ -38,6 +42,6 @@ export default function EChart({
     chartRef.current?.setOption(option, true);
   }, [option]);
 
-  return <div ref={ref} style={{ width: "100%", height }} />;
+  return <div ref={ref} style={{ width: "100%", height: '100%', flex: 1}}/>;
 }
 
