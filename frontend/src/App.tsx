@@ -1,4 +1,34 @@
-import { useEffect, useMemo, useState, type ReactNode } from "react";
+import { useEffect, useMemo, useState } from "react";
+import {
+  Alert,
+  App as AntdApp,
+  Button,
+  Card,
+  Dropdown,
+  Empty,
+  Input,
+  InputNumber,
+  Modal,
+  Select,
+  Spin,
+  Tag,
+  Tooltip,
+  Typography,
+} from "antd";
+import {
+  BarChartOutlined,
+  BulbOutlined,
+  CodeOutlined,
+  DatabaseOutlined,
+  DeleteOutlined,
+  EditOutlined,
+  EllipsisOutlined,
+  MenuFoldOutlined,
+  PlusOutlined,
+  RobotOutlined,
+  SendOutlined,
+  SyncOutlined,
+} from "@ant-design/icons";
 
 import {
   createDatasource,
@@ -66,60 +96,40 @@ function ChartCard({
   };
 
   return (
-    <div className="chart-card">
+    <Card className="chart-card" bordered={false}>
       <div className="chart-card-head">
         <div className="chart-card-title">
           <span className="chart-kind-dot" data-kind={chart.chart_type} />
           <strong>{chart.title}</strong>
         </div>
         <div className="chart-card-actions">
-          <select
-            className="type-select"
+          <Select
+            size="small"
             value={chartType}
-            onChange={(e) => handleType(e.target.value)}
+            onChange={handleType}
             aria-label="图表类型"
+            options={typeOptions.map((option) => ({
+              value: option.value,
+              label: option.label,
+            }))}
+          />
+          <Button
+            size="small"
+            type={showSql ? "primary" : "default"}
+            ghost={showSql}
+            icon={<CodeOutlined />}
+            onClick={() => setShowSql((value) => !value)}
           >
-            {typeOptions.map((o) => (
-              <option key={o.value} value={o.value}>
-                {o.label}
-              </option>
-            ))}
-          </select>
-          <button className="icon-btn" onClick={() => setShowSql((v) => !v)}>
-            {showSql ? "SQL ▴" : "SQL"}
-          </button>
-          <button className="icon-btn" onClick={() => exportPNG([chart])}>
-            PNG
-          </button>
+            SQL
+          </Button>
+          <Button size="small" onClick={() => exportPNG([chart])}>
+            导出 PNG
+          </Button>
         </div>
       </div>
       {showSql && <pre className="sql-box">{chart.sql || "(无 SQL)"}</pre>}
       <EChart chartId={chart.chart_id} option={option} />
-    </div>
-  );
-}
-
-function Modal({
-  title,
-  onClose,
-  children,
-}: {
-  title: string;
-  onClose: () => void;
-  children: ReactNode;
-}) {
-  return (
-    <div className="modal-overlay" onClick={onClose}>
-      <div className="modal" onClick={(e) => e.stopPropagation()}>
-        <div className="modal-head">
-          <h3>{title}</h3>
-          <button className="icon-btn" onClick={onClose}>
-            ×
-          </button>
-        </div>
-        {children}
-      </div>
-    </div>
+    </Card>
   );
 }
 
@@ -134,20 +144,19 @@ const EMPTY_FORM = {
 };
 
 export default function App() {
+  const { message, modal } = AntdApp.useApp();
   const [datasources, setDatasources] = useState<Datasource[]>([]);
   const [dashboards, setDashboards] = useState<DashboardSummary[]>([]);
   const [question, setQuestion] = useState("");
-  const [notice, setNotice] = useState("");
   const [showAdd, setShowAdd] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [renameTarget, setRenameTarget] = useState<{
+    id: number;
+    title: string;
+  } | null>(null);
+  const [renameTitle, setRenameTitle] = useState("");
   const [form, setForm] = useState(EMPTY_FORM);
   const [busy, setBusy] = useState(false);
-
-  useEffect(() => {
-    if (!notice) return;
-    const id = window.setTimeout(() => setNotice(""), 2600);
-    return () => window.clearTimeout(id);
-  }, [notice]);
 
   const {
     conversations,
@@ -163,20 +172,28 @@ export default function App() {
     error,
     loadConversations,
     createConversation,
+    renameConversation,
+    deleteConversation,
     selectConversation,
     send,
     loadBoard,
   } = useChatStore();
 
-  const refreshDatasources = () =>
-    listDatasources()
-      .then(setDatasources)
-      .catch(() => setDatasources([]));
+  const refreshDatasources = async () => {
+    try {
+      setDatasources(await listDatasources());
+    } catch (err) {
+      message.error(err instanceof Error ? err.message : String(err));
+    }
+  };
 
-  const refreshDashboards = () =>
-    listDashboards()
-      .then(setDashboards)
-      .catch(() => setDashboards([]));
+  const refreshDashboards = async () => {
+    try {
+      setDashboards(await listDashboards());
+    } catch (err) {
+      message.error(err instanceof Error ? err.message : String(err));
+    }
+  };
 
   useEffect(() => {
     refreshDatasources();
@@ -189,7 +206,7 @@ export default function App() {
   const submit = async () => {
     if (!question.trim() || loading) return;
     if (datasourceId == null) {
-      setNotice("请先在左侧选择或添加数据源");
+      message.warning("请先在左侧选择或添加数据源");
       return;
     }
     await send(question.trim());
@@ -198,7 +215,7 @@ export default function App() {
 
   const handleSuggestion = async (q: string) => {
     if (datasourceId == null) {
-      setNotice("请先在左侧选择或添加数据源");
+      message.warning("请先在左侧选择或添加数据源");
       return;
     }
     await send(q);
@@ -206,14 +223,41 @@ export default function App() {
 
   const startNewConversation = async () => {
     if (datasourceId == null) {
-      setNotice("请先选择数据源后再新建会话");
+      message.warning("请先选择数据源后再新建会话");
       return;
     }
     await createConversation();
     setSidebarOpen(false);
   };
 
+  const renameSelectedConversation = (id: number, title: string) => {
+    setRenameTarget({ id, title });
+    setRenameTitle(title);
+  };
+
+  const removeConversation = async (id: number, title: string) => {
+    modal.confirm({
+      title: "删除会话",
+      content: `确定删除「${title}」及其消息和图表吗？此操作无法撤销。`,
+      okText: "删除",
+      cancelText: "取消",
+      okButtonProps: { danger: true },
+      onOk: () => deleteConversation(id),
+    });
+  };
+
   const addDatasource = async () => {
+    if (
+      !form.name.trim() ||
+      !form.host.trim() ||
+      !form.database.trim() ||
+      !form.username.trim() ||
+      !form.password ||
+      !Number(form.port)
+    ) {
+      message.warning("请完整填写数据源连接信息");
+      return;
+    }
     setBusy(true);
     try {
       await createDatasource({
@@ -225,12 +269,12 @@ export default function App() {
         username: form.username,
         password: form.password,
       });
-      setNotice("数据源已添加，请点击「同步知识库」建立索引");
+      message.success("数据源已添加，请同步知识库建立索引");
       setShowAdd(false);
       setForm(EMPTY_FORM);
-      refreshDatasources();
+      await refreshDatasources();
     } catch (err) {
-      setNotice(err instanceof Error ? err.message : String(err));
+      message.error(err instanceof Error ? err.message : String(err));
     } finally {
       setBusy(false);
     }
@@ -241,9 +285,9 @@ export default function App() {
     setBusy(true);
     try {
       await syncDatasource(datasourceId);
-      setNotice("知识库同步完成");
+      message.success("知识库同步完成");
     } catch (err) {
-      setNotice(err instanceof Error ? err.message : String(err));
+      message.error(err instanceof Error ? err.message : String(err));
     } finally {
       setBusy(false);
     }
@@ -251,14 +295,24 @@ export default function App() {
 
   const removeSelected = async () => {
     if (datasourceId == null) return;
-    try {
-      await deleteDatasource(datasourceId);
-      setDatasource(null);
-      setNotice("数据源已删除");
-      refreshDatasources();
-    } catch (err) {
-      setNotice(err instanceof Error ? err.message : String(err));
-    }
+    modal.confirm({
+      title: "删除数据源",
+      content: `确定删除数据源「${activeDatasource?.name}」吗？此操作无法撤销。`,
+      okText: "删除",
+      cancelText: "取消",
+      okButtonProps: { danger: true },
+      onOk: async () => {
+        try {
+          await deleteDatasource(datasourceId);
+          setDatasource(null);
+          await refreshDatasources();
+          message.success("数据源已删除");
+        } catch (err) {
+          message.error(err instanceof Error ? err.message : String(err));
+          throw err;
+        }
+      },
+    });
   };
 
   const loadDashboard = async (id: number) => {
@@ -269,9 +323,9 @@ export default function App() {
         (layout.charts as ChartItem[]) ?? [],
         (layout.insights as InsightItem[]) ?? [],
       );
-      setNotice(`已载入看板「${board.title}」`);
+      message.success(`已载入看板「${board.title}」`);
     } catch (err) {
-      setNotice(err instanceof Error ? err.message : String(err));
+      message.error(err instanceof Error ? err.message : String(err));
     }
   };
 
@@ -283,8 +337,21 @@ export default function App() {
     try {
       await updateChart(chartId, chartType, option);
     } catch (err) {
-      setNotice(err instanceof Error ? err.message : String(err));
+      message.error(err instanceof Error ? err.message : String(err));
     }
+  };
+
+  const confirmRename = async () => {
+    if (!renameTarget) return;
+    const title = renameTitle.trim();
+    if (!title) {
+      message.warning("会话名称不能为空");
+      return;
+    }
+    if (title !== renameTarget.title) {
+      await renameConversation(renameTarget.id, title);
+    }
+    setRenameTarget(null);
   };
 
   const activeConversation = conversations.find(
@@ -315,121 +382,210 @@ export default function App() {
           </div>
         </div>
 
-        <button className="primary" onClick={startNewConversation}>
-          + 新建会话
-        </button>
+        <Button
+          type="primary"
+          size="large"
+          block
+          icon={<PlusOutlined />}
+          onClick={startNewConversation}
+        >
+          新建分析
+        </Button>
 
         <div className="side-section">
-          <label className="side-label">数据源</label>
-          <select
-            value={datasourceId ?? ""}
-            onChange={(e) => {
-              setDatasource(e.target.value ? Number(e.target.value) : null);
+          <label className="side-label">
+            <DatabaseOutlined /> 数据源
+          </label>
+          <Select
+            value={datasourceId ?? undefined}
+            placeholder="选择数据源"
+            size="large"
+            options={datasources.map((datasource) => ({
+              value: datasource.id,
+              label: `${datasource.name} · ${datasource.type}`,
+            }))}
+            onChange={(value) => {
+              setDatasource(value ?? null);
               setSidebarOpen(false);
             }}
-          >
-            <option value="">选择数据源</option>
-            {datasources.map((ds) => (
-              <option key={ds.id} value={ds.id}>
-                {ds.name} · {ds.type}
-              </option>
-            ))}
-          </select>
+          />
           <div className="side-actions">
-            <button className="ghost" onClick={syncSelected} disabled={busy}>
+            <Button
+              block
+              icon={<SyncOutlined spin={busy} />}
+              onClick={syncSelected}
+              disabled={busy || datasourceId == null}
+            >
               同步知识库
-            </button>
-            <button className="ghost" onClick={() => setShowAdd(true)}>
+            </Button>
+            <Button
+              block
+              icon={<PlusOutlined />}
+              onClick={() => setShowAdd(true)}
+            >
               添加数据源
-            </button>
-            <button className="ghost danger" onClick={removeSelected}>
+            </Button>
+            <Button
+              block
+              danger
+              icon={<DeleteOutlined />}
+              onClick={removeSelected}
+              disabled={datasourceId == null}
+            >
               删除当前数据源
-            </button>
+            </Button>
           </div>
         </div>
 
         <div className="side-section">
-          <label className="side-label">会话</label>
+          <label className="side-label">
+            <RobotOutlined /> 分析会话
+          </label>
           <div className="conv-list">
             {conversations.map((c) => (
-              <button
-                key={c.id}
-                className={
-                  c.id === activeConversationId
-                    ? "conv-item active"
-                    : "conv-item"
-                }
-                onClick={() => selectConversation(c.id)}
-              >
-                <span className="conv-name">{c.title}</span>
-              </button>
+              <div className="conversation-row" key={c.id}>
+                <Button
+                  type="text"
+                  className={
+                    c.id === activeConversationId
+                      ? "conv-item active"
+                      : "conv-item"
+                  }
+                  onClick={() => selectConversation(c.id)}
+                  title={c.title}
+                >
+                  <span className="conv-name">{c.title}</span>
+                </Button>
+                <Dropdown
+                  trigger={["click"]}
+                  menu={{
+                    items: [
+                      {
+                        key: "rename",
+                        icon: <EditOutlined />,
+                        label: "重命名",
+                      },
+                      {
+                        key: "delete",
+                        icon: <DeleteOutlined />,
+                        label: "删除会话",
+                        danger: true,
+                        disabled: loading && c.id === activeConversationId,
+                      },
+                    ],
+                    onClick: ({ key }) => {
+                      if (key === "rename") {
+                        renameSelectedConversation(c.id, c.title);
+                      } else if (key === "delete") {
+                        removeConversation(c.id, c.title);
+                      }
+                    },
+                  }}
+                >
+                  <Button
+                    className="conversation-menu"
+                    type="text"
+                    icon={<EllipsisOutlined />}
+                    aria-label={`会话操作：${c.title}`}
+                  />
+                </Dropdown>
+              </div>
             ))}
             {conversations.length === 0 && (
-              <div className="empty-hint">还没有会话</div>
+              <Empty
+                className="sidebar-empty"
+                image={Empty.PRESENTED_IMAGE_SIMPLE}
+                description="暂无会话"
+              />
             )}
           </div>
         </div>
 
         {dashboards.length > 0 && (
           <div className="side-section">
-            <label className="side-label">看板</label>
+            <label className="side-label">
+              <BarChartOutlined /> 已保存看板
+            </label>
             <div className="conv-list">
               {dashboards.map((d) => (
-                <button
+                <Button
                   key={d.id}
+                  type="text"
                   className="conv-item"
                   onClick={() => loadDashboard(d.id)}
                 >
                   <span className="conv-name">{d.title}</span>
-                </button>
+                </Button>
               ))}
             </div>
           </div>
         )}
       </aside>
 
+      {sidebarOpen && (
+        <button
+          className="sidebar-backdrop"
+          aria-label="关闭导航菜单"
+          onClick={() => setSidebarOpen(false)}
+        />
+      )}
+
       <main className="main">
         <header className="topbar">
-          <button
+          <Button
             className="icon-btn hamburger"
+            type="text"
+            icon={<MenuFoldOutlined />}
             onClick={() => setSidebarOpen((v) => !v)}
-          >
-            <svg width="16" height="12" viewBox="0 0 16 12" aria-hidden="true">
-              <line x1="0" y1="1" x2="16" y2="1" stroke="currentColor" strokeWidth="2" />
-              <line x1="0" y1="6" x2="16" y2="6" stroke="currentColor" strokeWidth="2" />
-              <line x1="0" y1="11" x2="16" y2="11" stroke="currentColor" strokeWidth="2" />
-            </svg>
-          </button>
+          />
           <div className="topbar-title">
             {activeConversation ? activeConversation.title : "开始新的分析"}
           </div>
           <div className="topbar-right">
             {activeDatasource && (
-              <span className="badge">{activeDatasource.name}</span>
+              <Tag icon={<DatabaseOutlined />} color="blue">
+                {activeDatasource.name}
+              </Tag>
             )}
-            <span className="badge model">DeepSeek</span>
+            <Tag icon={<RobotOutlined />} color="green">
+              DeepSeek
+            </Tag>
           </div>
         </header>
 
         <div className="sheet">
         <div className="content">
-          {notice && <div className="notice">{notice}</div>}
-          {error && <div className="error">出错了：{error}</div>}
+          {error && (
+            <Alert
+              className="page-alert"
+              type="error"
+              showIcon
+              closable
+              message="操作未完成"
+              description={error}
+            />
+          )}
 
           {(activeDatasource || activeConversationId != null || charts.length > 0) && (
             <div className="workspace-summary">
-              <div className="summary-card">
+              <Card className="summary-card" size="small">
                 <span className="summary-label">当前数据源</span>
                 <strong>{activeDatasource ? activeDatasource.name : "未选择"}</strong>
-              </div>
-              <div className="summary-card">
+              </Card>
+              <Card className="summary-card" size="small">
                 <span className="summary-label">会话状态</span>
                 <strong>{activeConversation ? activeConversation.title : "待开始"}</strong>
-              </div>
-              <div className="summary-card accent">
+              </Card>
+              <Card className="summary-card accent" size="small">
                 <span className="summary-label">分析进度</span>
-                <strong>{loading ? stage || "正在分析…" : charts.length > 0 ? "已生成结果" : "等待提问"}</strong>
-              </div>
+                <strong>
+                  {loading
+                    ? stage || "正在分析…"
+                    : charts.length > 0
+                      ? "已生成结果"
+                      : "等待提问"}
+                </strong>
+              </Card>
             </div>
           )}
 
@@ -448,12 +604,18 @@ export default function App() {
                 </div>
                 <div className="suggestions">
                   {SUGGESTIONS.map((s) => (
-                    <button key={s} onClick={() => handleSuggestion(s)}>
+                    <Button
+                      key={s}
+                      shape="round"
+                      onClick={() => handleSuggestion(s)}
+                    >
                       {s}
-                    </button>
+                    </Button>
                   ))}
                 </div>
-                <div className="welcome-meta">已接入 1 个数据源 · 知识库 73 条</div>
+                <div className="welcome-meta">
+                  已配置 {datasources.length} 个数据源 · 支持自然语言分析
+                </div>
               </div>
               <div className="welcome-example">
                 <div className="example-q">各区域成交额是多少</div>
@@ -495,24 +657,38 @@ export default function App() {
                 </div>
               )}
 
+              {messages.length === 0 &&
+                charts.length === 0 &&
+                !loading && (
+                  <Empty
+                    className="conversation-empty"
+                    description="提出一个数据问题，开始本次分析"
+                  />
+                )}
+
               {loading && (
-                <div className="stage">
-                  <span className="spinner" />
-                  {stage || "正在分析…"}
-                </div>
+                <Alert
+                  className="stage"
+                  type="info"
+                  showIcon
+                  icon={<Spin size="small" />}
+                  message={stage || "正在分析…"}
+                />
               )}
 
               {charts.length > 0 && (
                 <div className="charts-block">
                   <div className="block-head">
-                    <h2>图表</h2>
+                    <Typography.Title level={4}>
+                      <BarChartOutlined /> 分析图表
+                    </Typography.Title>
                     <div className="block-actions">
-                      <button className="ghost" onClick={() => exportPNG(charts)}>
+                      <Button onClick={() => exportPNG(charts)}>
                         导出 PNG
-                      </button>
-                      <button className="ghost" onClick={() => exportPDF(charts)}>
+                      </Button>
+                      <Button type="primary" onClick={() => exportPDF(charts)}>
                         导出 PDF
-                      </button>
+                      </Button>
                     </div>
                   </div>
                   <div className="charts-grid">
@@ -530,7 +706,9 @@ export default function App() {
               {narrative && (
                 <section className="narrative">
                   <div className="narrative-head">
-                    <h2>整体解读</h2>
+                    <Typography.Title level={4}>
+                      <BulbOutlined /> 整体解读
+                    </Typography.Title>
                   </div>
                   <p className="narrative-summary">{narrative.summary}</p>
                   {narrative.highlights.length > 0 && (
@@ -545,16 +723,18 @@ export default function App() {
 
               {insights.length > 0 && (
                 <section className="insights">
-                  <h2>BI 洞察</h2>
+                  <Typography.Title level={4}>
+                    <BulbOutlined /> BI 洞察
+                  </Typography.Title>
                   <div className="insight-grid">
                     {insights.map((ins, i) => (
-                      <div key={i} className="insight-card">
+                      <Card key={i} className="insight-card" size="small">
                         <div className="insight-head">
-                          <span className="tag">{ins.kind}</span>
+                          <Tag color="blue">{ins.kind}</Tag>
                           <strong>{ins.title}</strong>
                         </div>
                         <p>{ins.body}</p>
-                      </div>
+                      </Card>
                     ))}
                   </div>
                 </section>
@@ -564,7 +744,7 @@ export default function App() {
         </div>
 
         <div className="composer">
-          <textarea
+          <Input.TextArea
             value={question}
             placeholder={
               !datasourceId
@@ -573,7 +753,7 @@ export default function App() {
                   ? "选择或新建会话后再提问…"
                   : "例如：各区域成交额是多少，并给出每日趋势"
             }
-            rows={1}
+            autoSize={{ minRows: 1, maxRows: 4 }}
             disabled={!canAsk}
             onChange={(e) => setQuestion(e.target.value)}
             onKeyDown={(e) => {
@@ -583,79 +763,117 @@ export default function App() {
               }
             }}
           />
-          <button className="send-btn" onClick={submit} disabled={!canAsk || !question.trim()}>
-            {loading ? "生成中" : "发送"}
-          </button>
+          <Tooltip title={loading ? stage || "正在生成" : "发送问题（Enter）"}>
+            <Button
+              type="primary"
+              className="send-btn"
+              icon={<SendOutlined />}
+              onClick={submit}
+              disabled={!canAsk || !question.trim()}
+              loading={loading}
+            >
+              发送
+            </Button>
+          </Tooltip>
         </div>
         </div>
       </main>
 
-      {showAdd && (
-        <Modal title="添加数据源" onClose={() => setShowAdd(false)}>
-          <div className="form-grid">
-            <label>
-              名称
-              <input
-                value={form.name}
-                onChange={(e) => setForm({ ...form, name: e.target.value })}
-              />
-            </label>
-            <label>
-              类型
-              <select
-                value={form.type}
-                onChange={(e) => setForm({ ...form, type: e.target.value })}
-              >
-                <option value="postgresql">PostgreSQL</option>
-                <option value="mysql">MySQL</option>
-                <option value="clickhouse">ClickHouse</option>
-              </select>
-            </label>
-            <label>
-              主机
-              <input
-                value={form.host}
-                onChange={(e) => setForm({ ...form, host: e.target.value })}
-              />
-            </label>
-            <label>
-              端口
-              <input
-                value={form.port}
-                onChange={(e) => setForm({ ...form, port: e.target.value })}
-              />
-            </label>
-            <label>
-              数据库
-              <input
-                value={form.database}
-                onChange={(e) => setForm({ ...form, database: e.target.value })}
-              />
-            </label>
-            <label>
-              用户名
-              <input
-                value={form.username}
-                onChange={(e) => setForm({ ...form, username: e.target.value })}
-              />
-            </label>
-            <label>
-              密码
-              <input
-                type="password"
-                value={form.password}
-                onChange={(e) => setForm({ ...form, password: e.target.value })}
-              />
-            </label>
-          </div>
-          <div className="modal-foot">
-            <button className="primary" onClick={addDatasource} disabled={busy}>
-              保存
-            </button>
-          </div>
-        </Modal>
-      )}
+      <Modal
+        title="添加数据源"
+        open={showAdd}
+        onCancel={() => setShowAdd(false)}
+        onOk={addDatasource}
+        okText="保存数据源"
+        cancelText="取消"
+        confirmLoading={busy}
+        destroyOnHidden
+      >
+        <div className="form-grid">
+          <label>
+            名称
+            <Input
+              placeholder="例如：生产数据仓库"
+              value={form.name}
+              onChange={(e) => setForm({ ...form, name: e.target.value })}
+            />
+          </label>
+          <label>
+            类型
+            <Select
+              value={form.type}
+              onChange={(value) => setForm({ ...form, type: value })}
+              options={[
+                { value: "postgresql", label: "PostgreSQL" },
+                { value: "mysql", label: "MySQL" },
+                { value: "clickhouse", label: "ClickHouse" },
+              ]}
+            />
+          </label>
+          <label>
+            主机
+            <Input
+              placeholder="数据库主机地址"
+              value={form.host}
+              onChange={(e) => setForm({ ...form, host: e.target.value })}
+            />
+          </label>
+          <label>
+            端口
+            <InputNumber
+              min={1}
+              max={65535}
+              style={{ width: "100%" }}
+              value={Number(form.port) || null}
+              onChange={(value) =>
+                setForm({ ...form, port: value == null ? "" : String(value) })
+              }
+            />
+          </label>
+          <label>
+            数据库
+            <Input
+              placeholder="数据库名称"
+              value={form.database}
+              onChange={(e) => setForm({ ...form, database: e.target.value })}
+            />
+          </label>
+          <label>
+            用户名
+            <Input
+              value={form.username}
+              onChange={(e) => setForm({ ...form, username: e.target.value })}
+            />
+          </label>
+          <label className="form-wide">
+            密码
+            <Input.Password
+              value={form.password}
+              onChange={(e) => setForm({ ...form, password: e.target.value })}
+            />
+          </label>
+        </div>
+      </Modal>
+
+      <Modal
+        title="重命名会话"
+        open={renameTarget !== null}
+        onCancel={() => setRenameTarget(null)}
+        onOk={confirmRename}
+        okText="保存"
+        cancelText="取消"
+        okButtonProps={{ disabled: !renameTitle.trim() }}
+      >
+        <Input
+          autoFocus
+          maxLength={255}
+          showCount
+          value={renameTitle}
+          placeholder="请输入会话名称"
+          onChange={(e) => setRenameTitle(e.target.value)}
+          onPressEnter={confirmRename}
+        />
+      </Modal>
     </div>
   );
 }
-

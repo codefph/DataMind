@@ -2,12 +2,14 @@ import { create } from "zustand";
 
 import {
   createConversation,
+  deleteConversation as deleteConversationRequest,
   listCharts,
   listConversations,
   listMessages,
   queryConversation,
   type Conversation,
   type MessageItem,
+  updateConversation as updateConversationRequest,
 } from "../api/client";
 
 export interface ChartItem {
@@ -45,6 +47,8 @@ interface ChatState {
   error: string | null;
   loadConversations: () => Promise<void>;
   createConversation: () => Promise<number | null>;
+  renameConversation: (id: number, title: string) => Promise<void>;
+  deleteConversation: (id: number) => Promise<void>;
   selectConversation: (id: number) => Promise<void>;
   setDatasource: (id: number | null) => void;
   send: (question: string) => Promise<void>;
@@ -111,6 +115,47 @@ export const useChatStore = create<ChatState>()((set, get) => {
       } catch (err) {
         set({ error: err instanceof Error ? err.message : String(err) });
         return null;
+      }
+    },
+
+    renameConversation: async (id, title) => {
+      try {
+        const updated = await updateConversationRequest(id, title);
+        set((state) => ({
+          conversations: state.conversations.map((conversation) =>
+            conversation.id === id ? updated : conversation,
+          ),
+        }));
+      } catch (err) {
+        set({ error: err instanceof Error ? err.message : String(err) });
+      }
+    },
+
+    deleteConversation: async (id) => {
+      try {
+        await deleteConversationRequest(id);
+        const conversations = get().conversations.filter(
+          (conversation) => conversation.id !== id,
+        );
+        const isActive = get().activeConversationId === id;
+        set({ conversations, error: null });
+
+        if (isActive) {
+          const nextConversation = conversations[0];
+          set({
+            activeConversationId: nextConversation?.id ?? null,
+            messages: [],
+            charts: [],
+            insights: [],
+            narrative: null,
+            sqlMap: {},
+          });
+          if (nextConversation) {
+            await loadConversationData(nextConversation.id);
+          }
+        }
+      } catch (err) {
+        set({ error: err instanceof Error ? err.message : String(err) });
       }
     },
 
@@ -190,4 +235,3 @@ export const useChatStore = create<ChatState>()((set, get) => {
       set({ charts, insights, sqlMap: {}, narrative: null }),
   };
 });
-

@@ -139,8 +139,6 @@ cd backend
 ..\.venv\Scripts\python.exe -m uvicorn app.main:app --reload --port 8000
 ```
 
-> 如果本机裸 `python` 指向 Python 2.7，请使用 `py -3.13` 启动器。
-
 健康检查：
 
 - 存活：`GET http://127.0.0.1:8000/api/healthz`

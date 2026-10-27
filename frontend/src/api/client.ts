@@ -131,6 +131,16 @@ export const createConversation = (datasourceId: number | null) =>
 
 export const listConversations = () => request<Conversation[]>("/conversations");
 
+export const updateConversation = (id: number, title: string) =>
+  request<Conversation>(`/conversations/${id}`, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ title }),
+  });
+
+export const deleteConversation = (id: number) =>
+  request<void>(`/conversations/${id}`, { method: "DELETE" });
+
 export const listMessages = (id: number) =>
   request<MessageItem[]>(`/conversations/${id}/messages`);
 
@@ -163,4 +173,3 @@ export function queryConversation(
     onEvent,
   );
 }
-

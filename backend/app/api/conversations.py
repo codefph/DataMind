@@ -3,7 +3,7 @@ from typing import Any
 
 from fastapi import APIRouter, Depends, HTTPException
 from fastapi.responses import StreamingResponse
-from sqlalchemy import select
+from sqlalchemy import delete, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from ..agent.orchestrator import AnalysisPipeline
@@ -13,6 +13,7 @@ from ..models.conversation import Conversation, Message
 from ..schemas.conversation import (
     ConversationCreate,
     ConversationRead,
+    ConversationUpdate,
     MessageRead,
     QueryRequest,
 )
@@ -43,6 +44,36 @@ async def list_conversations(
         select(Conversation).order_by(Conversation.id.desc())
     )
     return list(result.scalars().all())
+
+
+@router.patch("/{conv_id}", response_model=ConversationRead)
+async def update_conversation(
+    conv_id: int,
+    payload: ConversationUpdate,
+    session: AsyncSession = Depends(get_session),
+) -> Conversation:
+    conv = await session.get(Conversation, conv_id)
+    if conv is None:
+        raise HTTPException(status_code=404, detail="会话不存在")
+    conv.title = payload.title
+    await session.commit()
+    await session.refresh(conv)
+    return conv
+
+
+@router.delete("/{conv_id}", status_code=204)
+async def delete_conversation(
+    conv_id: int, session: AsyncSession = Depends(get_session)
+) -> None:
+    conv = await session.get(Conversation, conv_id)
+    if conv is None:
+        raise HTTPException(status_code=404, detail="会话不存在")
+    await session.execute(
+        delete(Message).where(Message.conversation_id == conv_id)
+    )
+    await session.execute(delete(Chart).where(Chart.conversation_id == conv_id))
+    await session.delete(conv)
+    await session.commit()
 
 
 @router.get("/{conv_id}/messages", response_model=list[MessageRead])
@@ -190,4 +221,3 @@ async def _build_history(
             content = f"{msg.content}\n{detail}"
         history.append({"role": msg.role, "content": content})
     return history
-
