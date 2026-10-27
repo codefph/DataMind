@@ -18,7 +18,7 @@ services:
 
   backend:
     build:
-      context: ../backend
+      context: /www/wwwroot/DataMind/backend
       dockerfile: Dockerfile
     environment:
       ENVIRONMENT: prod
@@ -39,7 +39,7 @@ services:
 
   frontend:
     build:
-      context: ../frontend
+      context: /www/wwwroot/DataMind/frontend
       dockerfile: Dockerfile
     depends_on:
       - backend
