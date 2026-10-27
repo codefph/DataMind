@@ -501,7 +501,7 @@ export default function App() {
           </div>
         </div>
 
-        {dashboards.length > 0 && (
+        {/* {dashboards.length > 0 && (
           <div className="side-section">
             <label className="side-label">
               <BarChartOutlined /> 已保存看板
@@ -519,7 +519,7 @@ export default function App() {
               ))}
             </div>
           </div>
-        )}
+        )} */}
       </aside>
 
       {sidebarOpen && (

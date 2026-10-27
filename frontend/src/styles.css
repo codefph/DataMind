@@ -561,6 +561,7 @@ textarea:not(.ant-input):focus {
   border-radius: var(--radius-card);
   box-shadow: var(--shadow-card);
   background: #fff;
+  resize: both;
 }
 
 .chart-card .ant-card-body {
